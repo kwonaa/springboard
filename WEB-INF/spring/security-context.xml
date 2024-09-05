@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- CustomLoginSuccessHandler 클래스 bean 등록 -->
+	<bean id="customLoginSuccess" class="org.zerock.security.CustomLoginSuccessHandler"></bean>
+	<!-- CustomAccessDeniedHandler 클래스 bean 등록 -->
+	<bean id="customAccessDenied" class="org.zerock.security.CustomAccessDeniedHandler"></bean>
+	<!-- CustomNoOpPasswordEncoder 클래스 bean 등록 -->
+	<!-- <bean id="customPasswordEncoder" class="org.zerock.security.CustomNoOpPasswordEncoder"></bean> -->
+	<!-- 스프링에서 제공하는 PasswordEncoder 등록 -->
+	<bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+	<!-- customUserDetailsService 빈 등록 -->
+	<bean id="customUserDetailsService" class="org.zerock.security.CustomUserDetailsService"></bean>
+
+
+	<security:http>
+		<!-- access="permitAll" : 모두 접속 가능 -->
+		<!-- <security:intercept-url pattern="/sample2/all" access="permitAll"/>  -->
+		
+		<!-- access="hasRole('ROLE_MEMBER')" : 권한이 있으면 true, 없으면 false -->
+		<!-- 역할 이름은 정해져 있으며 "ROLE_"로 시작함(모두 대문자. ADMIN, MEMBER, USER) -->
+		<!-- 상수는 항상 대문자로 입력하기 -->
+		<!-- <security:intercept-url pattern="/sample2/member" access="hasRole('ROLE_MEMBER')"/>  -->
+		<!-- <security:intercept-url pattern="/sample2/admin" access="hasRole('ROLE_ADMIN')"/>  -->
+		
+		<!-- 권한 에러용 핸들러에 컨트롤러 주소 등록 -->
+		<!-- <security:access-denied-handler error-page="/accessError"/> -->
+		<security:access-denied-handler ref="customAccessDenied"/>
+		
+		<!-- 로그인 페이지에 커스텀 로그인 컨트롤러 주소 등록 -->
+		<security:form-login login-page="/customLogin" authentication-success-handler-ref="customLoginSuccess" />
+
+		<!-- 커스텀 로그아웃 주소 등록. 세션을 지워서 로그아웃 처리 -->
+		<security:logout logout-url="/customLogout" invalidate-session="true" delete-cookies="remember-me,JSESSION_ID" />
+	
+		<!-- Security csrf 토큰 사용 안 하려면 주석처리 -->
+		<!-- <security:csrf disabled="true" /> -->
+		
+		<!-- 자동로그인. 단위 : 초 (7일) -->
+		<security:remember-me data-source-ref="dataSource" token-validity-seconds="604800" />
+	</security:http>
+
+	<security:authentication-manager>
+		<!-- 로그인 방법을 담당 -->
+		<security:authentication-provider user-service-ref="customUserDetailsService">
+			<!-- <security:user-service>
+				<security:user name="member" password="{noop}member" authorities="ROLE_MEMBER" />
+				<security:user name="admin" password="{noop}admin" authorities="ROLE_ADMIN,ROLE_MEMBER" />
+			</security:user-service> -->
+		
+			<!-- dataSource는 root-context.xml의 HikariCP에서 찾을 수 있음. 얘를 참고하라는 뜻 -->
+			<!-- <security:jdbc-user-service data-source-ref="dataSource"
+				users-by-username-query="select userid , userpw , enabled from tbl_member where userid = ? "
+				authorities-by-username-query="select userid, auth from tbl_member_auth where userid = ? " /> -->
+			
+			<!-- 비밀번호 암호화 -->
+			<!-- <security:password-encoder ref="customPasswordEncoder" /> -->
+			<security:password-encoder ref="bcryptPasswordEncoder" />
+	
+		</security:authentication-provider>
+	</security:authentication-manager>
+
+
+
+
+</beans>
